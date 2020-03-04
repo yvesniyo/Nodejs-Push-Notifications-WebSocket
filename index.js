@@ -38,7 +38,7 @@ webSocket.on("connection", function (ws, req, client) {
 // });
 app.use("/", routes);
 
-let PORT = process.env.PORT || 80;
+let PORT = process.env.PORT || 8080;
 server.listen(PORT, function () {
   console.log(`Server started on port ${PORT} && PORT_SOCKET on ${PORT_SOCKET}:)`);
 });
