@@ -1,10 +1,4 @@
 class Notification{
-    _id;
-    _msg;
-    _status;
-    _from;
-    _to;
-    _date;
     constructor(id,msg,status,from,to,date){
         this._id = id;
         this._msg = msg;
