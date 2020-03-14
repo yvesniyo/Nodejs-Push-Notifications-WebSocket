@@ -1,13 +1,44 @@
 var WebSocket = require("ws"),
     logs = require("./logger/index"),
-    notification = require("./notification/model"),
-    SocketHelper = require("./socketHelper");
+    SocketHelper = require("./socketHelper")
+    NotificationsModel = require("./models/Notification");
 class Push {
 
-    static onMessage(user_type, user_id, msg) {
+    static async onMessage(user_type, user_id, msg) {
         logs.logI(`userOnMessage, ${user_type}, ${user_id}, ${msg}`)
         if (SocketHelper.user == null) return;
-        this.sendMessageToUserType(user_type, "Message Group =" + msg);
+        if (this.isJson(msg)) {
+            let income = JSON.parse(msg);
+            if (income.type == "seen") {
+                let uuid = income.uuid;
+                try {
+                    await NotificationsModel.update({ "status": "seen" }, { where: { uuid: uuid } });
+                    msg = {
+                        type: "seeing",
+                        message: "ok",
+                    }
+                    Push.sendUserMessage(user_type, user_id, JSON.stringify(msg));
+                } catch (error) {
+                    console.log(error)
+                }
+
+            } else if (income.type == "retriveUnseen") {
+
+                NotificationsModel.findAll({
+                    where: { status: "unseen" }
+                }).then((rows) => {
+                    msg = {
+                        type: "retriveUnseen",
+                        counts: rows.length,
+                        rows: rows,
+                        user_type: user_type,
+                        user_id: user_id
+                    }
+                    Push.sendUserMessage(user_type, user_id, JSON.stringify(msg));
+                })
+            }
+
+        }
     }
     static onClose(user_type, user_id) {
         SocketHelper.user[user_type][user_id].ws.close();
@@ -22,13 +53,49 @@ class Push {
             this.sendUserMessage(user_type, user_id, msg);
         });
     }
+    static isJson(str) {
+        try {
+            JSON.parse(str);
+        } catch (e) {
+            return false;
+        }
+        return true;
+    }
+    static uuidv4() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 
-    static sendUserMessage(user_type, user_id, msg) {
-        if (SocketHelper.user == null) return;
-        let Notification = new notification(1,msg,"unsent","uknown",user_id,new Date());
-        logs.logI(`sendUserMessage, ${user_type}, ${user_id}, ${msg}`)
-        SocketHelper.user[user_type][user_id].ws.send(msg);
-        // console.log(Notification);
+    static async sendUserMessage(user_type, user_id, msg) {
+        if (this.isJson(msg)) {
+            msg = JSON.parse(msg);
+            if (msg.isNotification == true) {
+                msg["user_type"] = user_type;
+
+                msg["user_id"] = user_id;
+                msg["uuid"] = this.uuidv4();
+                try {
+                    delete msg.id;
+                    if(msg["others"] !== undefined){
+                        msg["others"] = JSON.stringify(msg["others"]);
+                    }
+                    let notification = await NotificationsModel.create(msg);
+                    msg = notification;
+                } catch (error) {
+                    console.log(error)
+                }
+
+            }
+            msg = JSON.stringify(msg);
+        }
+        try {
+            SocketHelper.user[user_type][user_id].ws.send(msg);
+        } catch (error) {
+
+        }
+
     }
 
     static broadcast(msg) {

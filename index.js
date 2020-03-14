@@ -12,7 +12,9 @@ const express = require("express"),
   DEBUG = false,
   logs = require("./logger/index"),
   webSocket = new WebSocket.Server({ server: server, port: PORT_SOCKET }),
-  bodyParser = require('body-parser');
+  bodyParser = require('body-parser')
+UserModel = require("./models/User")
+UserTypesModel = require("./models/UserTypes");
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -27,15 +29,51 @@ webSocket.on("connection", function (ws, req, client) {
     ws.close();
     ws.terminate();
   } else {
-    push.sendUserMessage(user_type, user_id, "Welcome " + user_type);
+    let not = new Notification();
+    Notification.findAll({
+      where: { status: "unseen", user_type: user_type, user_id: user_id },
+    }).then((notifications) => {
+      let msg = {
+        type: "retriveUnseen",
+        counts: notifications.length,
+        rows: notifications,
+        user_type: user_type,
+        user_id: user_id
+      }
+      push.sendUserMessage(user_type, user_id, JSON.stringify(msg));
+    })
+
   }
 });
-// app.use(function (req, res, next) {
-//   if (!req.get('authorization')) {
-//     return res.status(403).json({ error: 'No credentials sent!' });
-//   }
-//   next();
-// });
+function init_users_on_sockets() {
+  UserModel.findAll({}, {}).then((users) => {
+    console.log(JSON.stringify(users))
+    let types = {};
+    users.forEach(async (user) => {
+      let user_outside_id = user.user_outside_id;
+      let user_type_id = user.user_type_id;
+      if (types[`${user_type_id}`] == undefined) {
+        try {
+          let user_type = await UserTypesModel.findOne({ where: { id: user_type_id } });
+          if (user_type) {
+            types[`${user_type_id}`] = {
+              "user_type": user_type.name
+            }
+            socketHelper.userJoin(types[`${user_type_id}`]["user_type"], user_outside_id, null)
+          }
+
+        } catch (error) {
+          console.log(error);
+        }
+      } else {
+        socketHelper.userJoin(types[`${user_type_id}`]["user_type"], user_id, ws)
+      }
+
+    })
+  })
+  //socketHelper.userJoin(user_type, user_id, ws)
+}
+init_users_on_sockets();
 app.use("/", routes);
 
 let PORT = process.env.PORT || 8080;
