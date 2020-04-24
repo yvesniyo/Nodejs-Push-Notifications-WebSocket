@@ -6,7 +6,8 @@ class Notification extends Sequelize.Model {
       {
         id:{
             type: Sequelize.INTEGER,
-            primaryKey: true
+            primaryKey: true,
+            autoIncrement: true,
         },
         status: Sequelize.STRING,
         user_id: Sequelize.INTEGER,

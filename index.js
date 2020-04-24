@@ -34,13 +34,13 @@ webSocket.on("connection", function (ws, req, client) {
       where: { status: "unseen", user_type: user_type, user_id: user_id },
     }).then((notifications) => {
       let msg = {
-        type: "retriveUnseen",
+        reason: "retriveUnseen",
         counts: notifications.length,
         rows: notifications,
         user_type: user_type,
         user_id: user_id
       }
-      push.sendUserMessage(user_type, user_id, JSON.stringify(msg));
+      push.sendUnseenNotification(user_type, user_id, JSON.stringify(msg));
     })
 
   }

@@ -68,12 +68,23 @@ class Push {
         });
     }
 
+    static async sendUnseenNotification(user_type, user_id, msg){
+        let res = {
+            "status": 200,
+            "type": "notification",
+            "data": JSON.parse(msg),
+        }
+        res = JSON.stringify(res)
+        SocketHelper.user[user_type][user_id].ws.send(res);
+    }
+
     static async sendUserMessage(user_type, user_id, msg) {
+        let reason;
         if (this.isJson(msg)) {
             msg = JSON.parse(msg);
+            reason = msg['reason'];
             if (msg.isNotification == true) {
                 msg["user_type"] = user_type;
-
                 msg["user_id"] = user_id;
                 msg["uuid"] = this.uuidv4();
                 try {
@@ -82,6 +93,7 @@ class Push {
                         msg["others"] = JSON.stringify(msg["others"]);
                     }
                     let notification = await NotificationsModel.create(msg);
+                    
                     msg = notification;
                 } catch (error) {
                     console.log(error)
@@ -89,12 +101,29 @@ class Push {
 
             }
             msg = JSON.stringify(msg);
-        }
-        try {
-            SocketHelper.user[user_type][user_id].ws.send(msg);
-        } catch (error) {
 
+            try {
+                msg = JSON.parse(msg);
+                let res = {
+                    "status": 200,
+                    "type": "notification",
+                    "data": {
+                        "reason": reason ,
+                        "row": msg
+                    },
+                }
+                if(!res["data"]["reason"]){
+                    res["data"]["reason"] = "none";
+                }
+                res = JSON.stringify(res)
+                SocketHelper.user[user_type][user_id].ws.send(res);
+            } catch (error) {
+    
+            }
+        }else{
+            SocketHelper.user[user_type][user_id].ws.send(msg);
         }
+        
 
     }
 

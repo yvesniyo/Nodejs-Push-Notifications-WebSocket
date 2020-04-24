@@ -56,6 +56,7 @@ function incomingNotification(req) {
         biggestImage: req.body.biggestImage == "true" ? true : false,
         smallImage: req.body.smallImage == "true" ? true : false,
         isNotification: true,
+        reason: req.body.reason ? req.body.reason : null,
     });
 }
 
