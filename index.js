@@ -12,10 +12,12 @@ const express = require("express"),
   DEBUG = false,
   logs = require("./logger/index"),
   webSocket = new WebSocket.Server({ server: server, port: PORT_SOCKET }),
-  bodyParser = require('body-parser')
-UserModel = require("./models/User")
-UserTypesModel = require("./models/UserTypes");
+  cors = require('cors'),
+  bodyParser = require('body-parser'),
+  UserModel = require("./models/User"),
+  UserTypesModel = require("./models/UserTypes");
 
+app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 

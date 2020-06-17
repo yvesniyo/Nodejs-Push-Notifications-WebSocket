@@ -93,7 +93,6 @@ class Push {
                         msg["others"] = JSON.stringify(msg["others"]);
                     }
                     let notification = await NotificationsModel.create(msg);
-                    
                     msg = notification;
                 } catch (error) {
                     console.log(error)
